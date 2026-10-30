@@ -1,0 +1,7 @@
+{
+  "name": "Simulado Mérito 2027 - 5º ano",
+  "description": "Simulado preparatório para a Bolsa Mérito Estudantil com foco nas habilidades do 4º ano do Ensino Fundamental.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+
