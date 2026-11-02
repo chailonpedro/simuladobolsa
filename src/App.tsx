@@ -1,14 +1,20 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Questao, 
   QuestaoSimulado, 
   AlternativaEmbaralhada, 
   RespostaAluno, 
   ResultadoSimulado, 
-  EstatisticaHabilidade 
+  EstatisticaHabilidade,
+  Disciplina,
+  ModalidadeTreino
 } from './types';
-import { BANCO_QUESTOES, sortearQuestoesSimulado } from './data/questoes';
-import { HABILIDADES_INFO, obterDicaHabilidade } from './data/habilidadesDicas';
+import { 
+  BANCO_QUESTOES, 
+  sortearQuestoesSimulado, 
+  sortearQuestoesEstudoDirigido 
+} from './data/questoes';
+import { obterDicaHabilidade } from './data/habilidadesDicas';
 import { Header } from './components/Header';
 import { TelaInicial } from './components/TelaInicial';
 import { TelaSimulado } from './components/TelaSimulado';
@@ -41,13 +47,21 @@ export default function App() {
     }
   });
 
-  // Estado do simulado ativo
+  // Modalidade e dados da sessão ativa
+  const [modalidadeAtiva, setModalidadeAtiva] = useState<ModalidadeTreino>('simulado');
+  const [temaEstudoAtivo, setTemaEstudoAtivo] = useState<string | undefined>(undefined);
+  const [disciplinaEstudoAtiva, setDisciplinaEstudoAtiva] = useState<Disciplina | undefined>(undefined);
+
+  // Estado das questões e respostas
   const [questoesSimulado, setQuestoesSimulado] = useState<QuestaoSimulado[]>([]);
   const [respostas, setRespostas] = useState<RespostaAluno>({});
   const [marcadasRevisao, setMarcadasRevisao] = useState<Set<number>>(new Set());
   const [indiceQuestaoAtual, setIndiceQuestaoAtual] = useState<number>(0);
+
+  // Controle de tempo
   const [tempoRestanteSegundos, setTempoRestanteSegundos] = useState<number>(40 * 60);
   const [tempoTotalSegundos, setTempoTotalSegundos] = useState<number>(40 * 60);
+  const [tempoDecorridoSegundos, setTempoDecorridoSegundos] = useState<number>(0);
 
   // Resultado a exibir na tela de resultado
   const [resultadoAtual, setResultadoAtual] = useState<ResultadoSimulado | null>(null);
@@ -65,7 +79,18 @@ export default function App() {
     localStorage.setItem(STORAGE_KEY_HISTORICO, JSON.stringify(historico));
   }, [historico]);
 
-  // Função para embaralhar um array genérico
+  // Cronômetro progressivo para o Estudo Dirigido (modo livre)
+  useEffect(() => {
+    if (tela !== 'simulado' || modalidadeAtiva !== 'estudo_dirigido') return;
+
+    const timer = setInterval(() => {
+      setTempoDecorridoSegundos(prev => prev + 1);
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [tela, modalidadeAtiva]);
+
+  // Função utilitária para embaralhar alternativas
   const shuffleArray = <T,>(arr: T[]): T[] => {
     const copia = [...arr];
     for (let i = copia.length - 1; i > 0; i--) {
@@ -75,20 +100,16 @@ export default function App() {
     return copia;
   };
 
-  // Iniciar Simulado
-  const handleIniciarSimulado = () => {
-    const questoesSorteadas = sortearQuestoesSimulado(BANCO_QUESTOES);
-
+  // Prepara as questões com alternativas embaralhadas
+  const prepararQuestoes = (questoes: Questao[]): QuestaoSimulado[] => {
     const letras: ("A" | "B" | "C" | "D")[] = ["A", "B", "C", "D"];
 
-    const preparadas: QuestaoSimulado[] = questoesSorteadas.map((q, idx) => {
-      // Cria pares [indiceOriginal, texto]
+    return questoes.map((q, idx) => {
       const pares = q.alternativas.map((texto, originalIdx) => ({
         texto,
         indiceOriginal: originalIdx,
       }));
 
-      // Embaralha as alternativas mantendo o vínculo com o índice original
       const paresEmbaralhados = shuffleArray(pares);
 
       const alternativasEmbaralhadas: AlternativaEmbaralhada[] = paresEmbaralhados.map((p, altIdx) => ({
@@ -103,14 +124,49 @@ export default function App() {
         alternativasEmbaralhadas,
       };
     });
+  };
+
+  // Iniciar Simulado Oficial Completo (20 questões)
+  const handleIniciarSimulado = () => {
+    const questoesSorteadas = sortearQuestoesSimulado(BANCO_QUESTOES);
+    const preparadas = prepararQuestoes(questoesSorteadas);
+
+    setModalidadeAtiva('simulado');
+    setTemaEstudoAtivo(undefined);
+    setDisciplinaEstudoAtiva(undefined);
 
     setQuestoesSimulado(preparadas);
     setRespostas({});
     setMarcadasRevisao(new Set());
     setIndiceQuestaoAtual(0);
+
     const totalSegundos = tempoSelecionadoMinutos * 60;
     setTempoTotalSegundos(totalSegundos);
     setTempoRestanteSegundos(totalSegundos);
+    setTempoDecorridoSegundos(0);
+
+    setTela('simulado');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Iniciar Estudo Dirigido por Tema (10 questões do tema escolhido com >= 2 desafios)
+  const handleIniciarEstudoDirigido = (disciplina: Disciplina, habilidade: string) => {
+    const questoesSorteadas = sortearQuestoesEstudoDirigido(habilidade, BANCO_QUESTOES);
+    const preparadas = prepararQuestoes(questoesSorteadas);
+
+    setModalidadeAtiva('estudo_dirigido');
+    setTemaEstudoAtivo(habilidade);
+    setDisciplinaEstudoAtiva(disciplina);
+
+    setQuestoesSimulado(preparadas);
+    setRespostas({});
+    setMarcadasRevisao(new Set());
+    setIndiceQuestaoAtual(0);
+
+    setTempoTotalSegundos(0);
+    setTempoRestanteSegundos(0);
+    setTempoDecorridoSegundos(0);
+
     setTela('simulado');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -143,9 +199,12 @@ export default function App() {
     });
   };
 
-  // Finalizar e corrigir o simulado
+  // Finalizar e corrigir o simulado ou treino
   const handleFinalizarSimulado = () => {
-    const tempoGasto = tempoTotalSegundos - tempoRestanteSegundos;
+    const isEstudo = modalidadeAtiva === 'estudo_dirigido';
+    const tempoGasto = isEstudo 
+      ? Math.max(tempoDecorridoSegundos, 1)
+      : Math.max(tempoTotalSegundos - tempoRestanteSegundos, 1);
 
     let acertosTotal = 0;
     let acertosPT = 0;
@@ -153,8 +212,7 @@ export default function App() {
     let acertosMAT = 0;
     let totalMAT = 0;
 
-    // Estatísticas por habilidade
-    const mapaHabilidades: Record<string, { total: number; acertos: number; disciplina: "Portugues" | "Matematica" }> = {};
+    const mapaHabilidades: Record<string, { total: number; acertos: number; disciplina: Disciplina }> = {};
 
     questoesSimulado.forEach(q => {
       const isPT = q.questao.disciplina === "Portugues";
@@ -183,8 +241,6 @@ export default function App() {
 
     const totalQuestoes = questoesSimulado.length;
     // Cálculo proporcional da nota na escala de 0.0 a 10.0
-    // Em prova de 20 questões: cada questão vale 0,5 pt (20 * 0.5 = 10.0)
-    // Em prova de 12 questões: (acertos / 12) * 10
     const notaFinalCalculada = totalQuestoes > 0
       ? Number(((acertosTotal / totalQuestoes) * 10).toFixed(1))
       : 0;
@@ -220,6 +276,9 @@ export default function App() {
 
     const resultado: ResultadoSimulado = {
       id: `sim-${Date.now()}`,
+      modalidade: modalidadeAtiva,
+      temaEstudoDirigido: temaEstudoAtivo,
+      disciplinaEstudoDirigido: disciplinaEstudoAtiva,
       dataIso: agora.toISOString(),
       dataFormatada,
       nomeAluno: nomeAluno.trim(),
@@ -232,8 +291,8 @@ export default function App() {
       totalPortugues: totalPT,
       acertosMatematica: acertosMAT,
       totalMatematica: totalMAT,
-      tempoGastoSegundos: Math.max(tempoGasto, 1),
-      tempoLimiteMinutos: tempoSelecionadoMinutos,
+      tempoGastoSegundos: tempoGasto,
+      tempoLimiteMinutos: isEstudo ? 0 : tempoSelecionadoMinutos,
       questoesSimulado,
       respostas,
       habilidadesStats,
@@ -249,11 +308,20 @@ export default function App() {
   // Voltar ao início
   const handleVoltarInicio = () => {
     if (tela === 'simulado') {
-      const confirma = window.confirm("Você ainda está no simulado. Se sair agora, as respostas desta tentativa serão perdidas. Deseja sair?");
+      const confirma = window.confirm("Você ainda está no treino. Se sair agora, as respostas desta tentativa serão perdidas. Deseja sair?");
       if (!confirma) return;
     }
     setTela('inicio');
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Refazer treino baseado na modalidade do resultado atual
+  const handleRefazer = () => {
+    if (resultadoAtual?.modalidade === 'estudo_dirigido' && resultadoAtual.disciplinaEstudoDirigido && resultadoAtual.temaEstudoDirigido) {
+      handleIniciarEstudoDirigido(resultadoAtual.disciplinaEstudoDirigido, resultadoAtual.temaEstudoDirigido);
+    } else {
+      handleIniciarSimulado();
+    }
   };
 
   // Ver resultado antigo do histórico
@@ -287,6 +355,7 @@ export default function App() {
             tempoSelecionadoMinutos={tempoSelecionadoMinutos}
             setTempoSelecionadoMinutos={setTempoSelecionadoMinutos}
             onIniciarSimulado={handleIniciarSimulado}
+            onIniciarEstudoDirigido={handleIniciarEstudoDirigido}
             historico={historico}
             onVerResultadoAntigo={handleVerResultadoAntigo}
             onLimparHistorico={handleLimparHistorico}
@@ -296,12 +365,15 @@ export default function App() {
 
         {tela === 'simulado' && questoesSimulado.length > 0 && (
           <TelaSimulado
+            modalidade={modalidadeAtiva}
+            temaEstudoDirigido={temaEstudoAtivo}
             questoes={questoesSimulado}
             respostas={respostas}
             marcadasRevisao={marcadasRevisao}
             indiceAtual={indiceQuestaoAtual}
             tempoRestanteSegundos={tempoRestanteSegundos}
             tempoTotalSegundos={tempoTotalSegundos}
+            tempoDecorridoSegundos={tempoDecorridoSegundos}
             onSelecionarAlternativa={handleSelecionarAlternativa}
             onAlternarMarcadaRevisao={handleAlternarMarcadaRevisao}
             onNavegarQuestao={setIndiceQuestaoAtual}
@@ -314,7 +386,7 @@ export default function App() {
         {tela === 'resultado' && resultadoAtual && (
           <TelaResultado
             resultado={resultadoAtual}
-            onRefazerSimulado={handleIniciarSimulado}
+            onRefazerSimulado={handleRefazer}
             onVoltarInicio={handleVoltarInicio}
           />
         )}

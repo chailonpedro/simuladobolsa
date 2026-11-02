@@ -40,8 +40,13 @@ export interface EstatisticaHabilidade {
   dicaEstudo: string;
 }
 
+export type ModalidadeTreino = "simulado" | "estudo_dirigido";
+
 export interface ResultadoSimulado {
   id: string;
+  modalidade: ModalidadeTreino;
+  temaEstudoDirigido?: string;
+  disciplinaEstudoDirigido?: Disciplina;
   dataIso: string;
   dataFormatada: string;
   nomeAluno: string;
@@ -55,7 +60,7 @@ export interface ResultadoSimulado {
   acertosMatematica: number;
   totalMatematica: number;
   tempoGastoSegundos: number;
-  tempoLimiteMinutos: number;
+  tempoLimiteMinutos: number; // 0 para modo livre
   questoesSimulado: QuestaoSimulado[];
   respostas: RespostaAluno;
   habilidadesStats: EstatisticaHabilidade[];
