@@ -11,13 +11,15 @@ import {
   Calculator,
   Target,
   Flame,
-  Clock
+  Clock,
+  FlagTriangleRight
 } from 'lucide-react';
 import { QuestaoSimulado, RespostaAluno, ModalidadeTreino } from '../types';
 import { Cronometro } from './Cronometro';
 
 interface TelaSimuladoProps {
   modalidade: ModalidadeTreino;
+  numeroSimuladoRetaFinal?: 1 | 2 | 3;
   temaEstudoDirigido?: string;
   questoes: QuestaoSimulado[];
   respostas: RespostaAluno;
@@ -36,6 +38,7 @@ interface TelaSimuladoProps {
 
 export const TelaSimulado: React.FC<TelaSimuladoProps> = ({
   modalidade,
+  numeroSimuladoRetaFinal,
   temaEstudoDirigido,
   questoes,
   respostas,
@@ -68,6 +71,7 @@ export const TelaSimulado: React.FC<TelaSimuladoProps> = ({
     .map(q => q.numero);
 
   const isEstudoDirigido = modalidade === 'estudo_dirigido';
+  const isRetaFinal = modalidade === 'reta_final';
 
   // Formatação do tempo decorrido no modo livre
   const minutosDecorridos = Math.floor(tempoDecorridoSegundos / 60);
@@ -81,13 +85,21 @@ export const TelaSimulado: React.FC<TelaSimuladoProps> = ({
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="w-full sm:w-auto">
             {!isEstudoDirigido ? (
-              <div className="w-full sm:w-80">
-                <Cronometro
-                  tempoRestanteSegundos={tempoRestanteSegundos}
-                  tempoTotalSegundos={tempoTotalSegundos}
-                  onTempoEsgotado={onTempoEsgotado}
-                  onTick={onTickTempo}
-                />
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                {isRetaFinal && (
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-100 text-amber-900 border border-amber-300 font-extrabold text-xs shrink-0 self-start sm:self-center">
+                    <FlagTriangleRight className="w-4 h-4 text-amber-700 fill-current" />
+                    <span>Reta Final · Prova Oficial {numeroSimuladoRetaFinal}</span>
+                  </div>
+                )}
+                <div className="w-full sm:w-80">
+                  <Cronometro
+                    tempoRestanteSegundos={tempoRestanteSegundos}
+                    tempoTotalSegundos={tempoTotalSegundos}
+                    onTempoEsgotado={onTempoEsgotado}
+                    onTick={onTickTempo}
+                  />
+                </div>
               </div>
             ) : (
               <div className="flex flex-wrap items-center gap-2.5 px-4 py-2.5 rounded-xl bg-amber-50/80 border border-amber-200 text-amber-950">
@@ -123,7 +135,9 @@ export const TelaSimulado: React.FC<TelaSimuladoProps> = ({
         {/* Barra de Progresso */}
         <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
           <div
-            className={`h-full rounded-full transition-all duration-300 ${isEstudoDirigido ? 'bg-amber-500' : 'bg-indigo-600'}`}
+            className={`h-full rounded-full transition-all duration-300 ${
+              isRetaFinal ? 'bg-amber-500' : isEstudoDirigido ? 'bg-amber-500' : 'bg-indigo-600'
+            }`}
             style={{ width: `${progressoPercent}%` }}
           />
         </div>
@@ -215,7 +229,9 @@ export const TelaSimulado: React.FC<TelaSimuladoProps> = ({
                     aria-checked={isSelected}
                     className={`w-full text-left p-4 sm:p-5 rounded-xl border-2 transition-all flex items-start gap-4 cursor-pointer min-h-[60px] ${
                       isSelected
-                        ? isEstudoDirigido
+                        ? isRetaFinal
+                          ? 'bg-amber-50/80 border-amber-500 shadow-md ring-2 ring-amber-200'
+                          : isEstudoDirigido
                           ? 'bg-amber-50/80 border-amber-500 shadow-md ring-2 ring-amber-200'
                           : 'bg-indigo-50/80 border-indigo-600 shadow-md ring-2 ring-indigo-200'
                         : 'bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50'
@@ -223,7 +239,7 @@ export const TelaSimulado: React.FC<TelaSimuladoProps> = ({
                   >
                     <span className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-lg shrink-0 transition-colors ${
                       isSelected
-                        ? isEstudoDirigido ? 'bg-amber-500 text-white' : 'bg-indigo-600 text-white'
+                        ? isRetaFinal ? 'bg-amber-500 text-white' : isEstudoDirigido ? 'bg-amber-500 text-white' : 'bg-indigo-600 text-white'
                         : 'bg-slate-100 text-slate-700'
                     }`}>
                       {alt.letra}
@@ -251,7 +267,7 @@ export const TelaSimulado: React.FC<TelaSimuladoProps> = ({
                 <button
                   onClick={() => onNavegarQuestao(indiceAtual + 1)}
                   className={`px-6 py-3 rounded-xl text-white font-semibold transition-colors flex items-center gap-2 cursor-pointer text-base shadow-sm ${
-                    isEstudoDirigido ? 'bg-amber-500 hover:bg-amber-600 active:bg-amber-700' : 'bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800'
+                    isRetaFinal ? 'bg-amber-500 hover:bg-amber-600 active:bg-amber-700' : isEstudoDirigido ? 'bg-amber-500 hover:bg-amber-600 active:bg-amber-700' : 'bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800'
                   }`}
                 >
                   <span>Próxima</span>
@@ -280,7 +296,7 @@ export const TelaSimulado: React.FC<TelaSimuladoProps> = ({
           {/* Legenda dos Estados */}
           <div className="space-y-1.5 text-xs text-slate-600 pb-2 border-b border-slate-100">
             <div className="flex items-center gap-2">
-              <span className={`w-3.5 h-3.5 rounded inline-block ${isEstudoDirigido ? 'bg-amber-500' : 'bg-indigo-600'}`}></span>
+              <span className={`w-3.5 h-3.5 rounded inline-block ${isRetaFinal ? 'bg-amber-500' : isEstudoDirigido ? 'bg-amber-500' : 'bg-indigo-600'}`}></span>
               <span>Respondida</span>
             </div>
             <div className="flex items-center gap-2">
@@ -306,13 +322,13 @@ export const TelaSimulado: React.FC<TelaSimuladoProps> = ({
                   onClick={() => onNavegarQuestao(idx)}
                   className={`h-11 rounded-xl font-bold text-sm transition-all flex items-center justify-center relative cursor-pointer ${
                     isCurrent
-                      ? isEstudoDirigido ? 'ring-2 ring-amber-500 ring-offset-2' : 'ring-2 ring-indigo-500 ring-offset-2'
+                      ? isRetaFinal || isEstudoDirigido ? 'ring-2 ring-amber-500 ring-offset-2' : 'ring-2 ring-indigo-500 ring-offset-2'
                       : ''
                   } ${
                     marcada
                       ? 'bg-amber-100 text-amber-900 border-2 border-amber-400'
                       : respondida
-                      ? isEstudoDirigido ? 'bg-amber-500 text-white' : 'bg-indigo-600 text-white'
+                      ? isRetaFinal || isEstudoDirigido ? 'bg-amber-500 text-white' : 'bg-indigo-600 text-white'
                       : 'bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100'
                   }`}
                   aria-label={`Questão ${q.numero}: ${respondida ? 'Respondida' : 'Em branco'}, ${marcada ? 'Marcada para revisar' : ''}`}
@@ -347,7 +363,11 @@ export const TelaSimulado: React.FC<TelaSimuladoProps> = ({
               </div>
               <div>
                 <h3 className="text-xl font-bold text-slate-900">
-                  {isEstudoDirigido ? "Entregar o treino?" : "Entregar o simulado?"}
+                  {isRetaFinal 
+                    ? `Entregar o Simulado ${numeroSimuladoRetaFinal} da Reta Final?` 
+                    : isEstudoDirigido 
+                    ? "Entregar o treino?" 
+                    : "Entregar o simulado?"}
                 </h3>
                 <p className="text-sm text-slate-500">
                   Você respondeu {totalRespondidas} de {totalQuestoes} questões.

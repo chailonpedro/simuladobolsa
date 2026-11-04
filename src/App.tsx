@@ -14,6 +14,7 @@ import {
   sortearQuestoesSimulado, 
   sortearQuestoesEstudoDirigido 
 } from './data/questoes';
+import { obterSimuladoRetaFinal } from './data/questoesRetaFinal';
 import { obterDicaHabilidade } from './data/habilidadesDicas';
 import { Header } from './components/Header';
 import { TelaInicial } from './components/TelaInicial';
@@ -49,6 +50,7 @@ export default function App() {
 
   // Modalidade e dados da sessão ativa
   const [modalidadeAtiva, setModalidadeAtiva] = useState<ModalidadeTreino>('simulado');
+  const [numeroRetaFinalAtivo, setNumeroRetaFinalAtivo] = useState<1 | 2 | 3 | undefined>(undefined);
   const [temaEstudoAtivo, setTemaEstudoAtivo] = useState<string | undefined>(undefined);
   const [disciplinaEstudoAtiva, setDisciplinaEstudoAtiva] = useState<Disciplina | undefined>(undefined);
 
@@ -132,6 +134,7 @@ export default function App() {
     const preparadas = prepararQuestoes(questoesSorteadas);
 
     setModalidadeAtiva('simulado');
+    setNumeroRetaFinalAtivo(undefined);
     setTemaEstudoAtivo(undefined);
     setDisciplinaEstudoAtiva(undefined);
 
@@ -155,6 +158,7 @@ export default function App() {
     const preparadas = prepararQuestoes(questoesSorteadas);
 
     setModalidadeAtiva('estudo_dirigido');
+    setNumeroRetaFinalAtivo(undefined);
     setTemaEstudoAtivo(habilidade);
     setDisciplinaEstudoAtiva(disciplina);
 
@@ -165,6 +169,30 @@ export default function App() {
 
     setTempoTotalSegundos(0);
     setTempoRestanteSegundos(0);
+    setTempoDecorridoSegundos(0);
+
+    setTela('simulado');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Iniciar Prova da Reta Final (20 questões exclusivas e inéditas: 10 PT + 10 MAT)
+  const handleIniciarRetaFinal = (numero: 1 | 2 | 3) => {
+    const questoesRetaFinal = obterSimuladoRetaFinal(numero);
+    const preparadas = prepararQuestoes(questoesRetaFinal);
+
+    setModalidadeAtiva('reta_final');
+    setNumeroRetaFinalAtivo(numero);
+    setTemaEstudoAtivo(undefined);
+    setDisciplinaEstudoAtiva(undefined);
+
+    setQuestoesSimulado(preparadas);
+    setRespostas({});
+    setMarcadasRevisao(new Set());
+    setIndiceQuestaoAtual(0);
+
+    const totalSegundos = tempoSelecionadoMinutos * 60;
+    setTempoTotalSegundos(totalSegundos);
+    setTempoRestanteSegundos(totalSegundos);
     setTempoDecorridoSegundos(0);
 
     setTela('simulado');
@@ -277,6 +305,7 @@ export default function App() {
     const resultado: ResultadoSimulado = {
       id: `sim-${Date.now()}`,
       modalidade: modalidadeAtiva,
+      numeroSimuladoRetaFinal: modalidadeAtiva === 'reta_final' ? numeroRetaFinalAtivo : undefined,
       temaEstudoDirigido: temaEstudoAtivo,
       disciplinaEstudoDirigido: disciplinaEstudoAtiva,
       dataIso: agora.toISOString(),
@@ -319,6 +348,8 @@ export default function App() {
   const handleRefazer = () => {
     if (resultadoAtual?.modalidade === 'estudo_dirigido' && resultadoAtual.disciplinaEstudoDirigido && resultadoAtual.temaEstudoDirigido) {
       handleIniciarEstudoDirigido(resultadoAtual.disciplinaEstudoDirigido, resultadoAtual.temaEstudoDirigido);
+    } else if (resultadoAtual?.modalidade === 'reta_final' && resultadoAtual.numeroSimuladoRetaFinal) {
+      handleIniciarRetaFinal(resultadoAtual.numeroSimuladoRetaFinal);
     } else {
       handleIniciarSimulado();
     }
@@ -356,6 +387,7 @@ export default function App() {
             setTempoSelecionadoMinutos={setTempoSelecionadoMinutos}
             onIniciarSimulado={handleIniciarSimulado}
             onIniciarEstudoDirigido={handleIniciarEstudoDirigido}
+            onIniciarRetaFinal={handleIniciarRetaFinal}
             historico={historico}
             onVerResultadoAntigo={handleVerResultadoAntigo}
             onLimparHistorico={handleLimparHistorico}
@@ -366,6 +398,7 @@ export default function App() {
         {tela === 'simulado' && questoesSimulado.length > 0 && (
           <TelaSimulado
             modalidade={modalidadeAtiva}
+            numeroSimuladoRetaFinal={numeroRetaFinalAtivo}
             temaEstudoDirigido={temaEstudoAtivo}
             questoes={questoesSimulado}
             respostas={respostas}

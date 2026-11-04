@@ -6,12 +6,12 @@ import {
   Home, 
   Clock, 
   CheckCircle, 
-  Sparkles,
-  BookOpen,
-  Calculator,
-  Info,
-  Target,
-  Lightbulb
+  BookOpen, 
+  Calculator, 
+  Info, 
+  Target, 
+  Lightbulb,
+  FlagTriangleRight
 } from 'lucide-react';
 import { ResultadoSimulado } from '../types';
 import { RelatorioHabilidades } from './RelatorioHabilidades';
@@ -29,6 +29,7 @@ export const TelaResultado: React.FC<TelaResultadoProps> = ({
   onVoltarInicio,
 }) => {
   const isEstudoDirigido = resultado.modalidade === 'estudo_dirigido';
+  const isRetaFinal = resultado.modalidade === 'reta_final';
 
   const minutosUsados = Math.floor(resultado.tempoGastoSegundos / 60);
   const segundosUsados = resultado.tempoGastoSegundos % 60;
@@ -67,11 +68,21 @@ export const TelaResultado: React.FC<TelaResultadoProps> = ({
           <button
             onClick={onRefazerSimulado}
             className={`px-4 py-2 text-white rounded-xl text-sm font-bold shadow-sm transition-colors flex items-center gap-1.5 cursor-pointer ${
-              isEstudoDirigido ? 'bg-amber-500 hover:bg-amber-600' : 'bg-indigo-600 hover:bg-indigo-700'
+              isRetaFinal 
+                ? 'bg-amber-500 hover:bg-amber-600' 
+                : isEstudoDirigido 
+                ? 'bg-amber-500 hover:bg-amber-600' 
+                : 'bg-indigo-600 hover:bg-indigo-700'
             }`}
           >
             <RotateCcw className="w-4 h-4" />
-            <span>{isEstudoDirigido ? "Praticar novamente este tema" : "Refazer simulado"}</span>
+            <span>
+              {isRetaFinal 
+                ? `Refazer Prova ${resultado.numeroSimuladoRetaFinal}` 
+                : isEstudoDirigido 
+                ? "Praticar novamente este tema" 
+                : "Refazer simulado"}
+            </span>
           </button>
         </div>
       </div>
@@ -80,7 +91,12 @@ export const TelaResultado: React.FC<TelaResultadoProps> = ({
       <div className="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 shadow-sm space-y-6">
         <div className="text-center space-y-2 border-b border-slate-100 pb-6">
           <div className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider">
-            {isEstudoDirigido ? (
+            {isRetaFinal ? (
+              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-amber-100 text-amber-900 border border-amber-300 font-extrabold">
+                <FlagTriangleRight className="w-3.5 h-3.5 text-amber-700 fill-current" />
+                <span>Reta Final · Prova Oficial {resultado.numeroSimuladoRetaFinal}</span>
+              </span>
+            ) : isEstudoDirigido ? (
               <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-amber-100 text-amber-900 border border-amber-200">
                 <Target className="w-3.5 h-3.5 text-amber-700" />
                 <span>Estudo Dirigido · {resultado.disciplinaEstudoDirigido === 'Portugues' ? 'Língua Portuguesa' : 'Matemática'}</span>
@@ -99,7 +115,16 @@ export const TelaResultado: React.FC<TelaResultadoProps> = ({
             {resultado.nomeAluno ? `Parabéns pela dedicação, ${resultado.nomeAluno}!` : "Parabéns pela sua dedicação!"}
           </h1>
 
-          {isEstudoDirigido ? (
+          {isRetaFinal ? (
+            <div className="space-y-1">
+              <p className="text-lg font-bold text-amber-950">
+                Simulado Inédito {resultado.numeroSimuladoRetaFinal} Concluído!
+              </p>
+              <p className="text-slate-600 max-w-xl mx-auto text-sm sm:text-base">
+                Você concluiu uma das provas exclusivas da Reta Final. Veja abaixo seu desempenho detalhado:
+              </p>
+            </div>
+          ) : isEstudoDirigido ? (
             <div className="space-y-1">
               <p className="text-lg font-bold text-amber-900">
                 {resultado.temaEstudoDirigido}
@@ -117,7 +142,7 @@ export const TelaResultado: React.FC<TelaResultadoProps> = ({
 
         {/* Grade de Notas */}
         {!isEstudoDirigido ? (
-          /* Simulado Geral: 3 colunas */
+          /* Simulado Geral / Reta Final: 3 colunas */
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Card da Nota Final */}
             <div className="bg-slate-50 rounded-2xl p-5 border border-slate-200 flex flex-col justify-between text-center space-y-2">
@@ -190,7 +215,7 @@ export const TelaResultado: React.FC<TelaResultadoProps> = ({
           </div>
         )}
 
-        {/* Mensagem de Feedback Acolhedor */}
+        {/* Mensagem de Feedback Acolhedor / Selo de Status */}
         {!isEstudoDirigido ? (
           <div className={`rounded-2xl p-4 sm:p-5 border flex items-start sm:items-center gap-4 ${
             resultado.atingiuMinimo
@@ -247,11 +272,17 @@ export const TelaResultado: React.FC<TelaResultadoProps> = ({
         <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-slate-500 pt-2 border-t border-slate-100">
           <div className="flex items-center gap-1.5">
             <Clock className="w-4 h-4 text-slate-400" />
-            <span>Tempo de treino utilizado: <strong className="text-slate-700">{tempoUsadoFormatado}</strong></span>
+            <span>Tempo de prova utilizado: <strong className="text-slate-700">{tempoUsadoFormatado}</strong></span>
           </div>
           <div className="flex items-center gap-1.5">
             <Info className="w-4 h-4 text-slate-400" />
-            <span>{isEstudoDirigido ? "Exercício dirigido com 10 questões específicas" : "Critério de desempate do edital: 1º Português, 2º Matemática"}</span>
+            <span>
+              {isRetaFinal
+                ? "Simulado Reta Final · 20 questões exclusivas e inéditas"
+                : isEstudoDirigido 
+                ? "Exercício dirigido com 10 questões específicas" 
+                : "Critério de desempate do edital: 1º Português, 2º Matemática"}
+            </span>
           </div>
         </div>
       </div>
@@ -273,11 +304,21 @@ export const TelaResultado: React.FC<TelaResultadoProps> = ({
         <button
           onClick={onRefazerSimulado}
           className={`w-full sm:w-auto px-8 py-3.5 text-white font-bold rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer text-base ${
-            isEstudoDirigido ? 'bg-amber-500 hover:bg-amber-600' : 'bg-indigo-600 hover:bg-indigo-700'
+            isRetaFinal
+              ? 'bg-amber-500 hover:bg-amber-600'
+              : isEstudoDirigido 
+              ? 'bg-amber-500 hover:bg-amber-600' 
+              : 'bg-indigo-600 hover:bg-indigo-700'
           }`}
         >
           <RotateCcw className="w-5 h-5" />
-          <span>{isEstudoDirigido ? "Fazer outro treino deste tema (novo sorteio)" : "Fazer outro simulado com novo sorteio"}</span>
+          <span>
+            {isRetaFinal
+              ? `Refazer Prova ${resultado.numeroSimuladoRetaFinal}`
+              : isEstudoDirigido 
+              ? "Fazer outro treino deste tema (novo sorteio)" 
+              : "Fazer outro simulado com novo sorteio"}
+          </span>
         </button>
 
         <button

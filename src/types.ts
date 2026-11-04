@@ -40,11 +40,12 @@ export interface EstatisticaHabilidade {
   dicaEstudo: string;
 }
 
-export type ModalidadeTreino = "simulado" | "estudo_dirigido";
+export type ModalidadeTreino = "simulado" | "estudo_dirigido" | "reta_final";
 
 export interface ResultadoSimulado {
   id: string;
   modalidade: ModalidadeTreino;
+  numeroSimuladoRetaFinal?: 1 | 2 | 3;
   temaEstudoDirigido?: string;
   disciplinaEstudoDirigido?: Disciplina;
   dataIso: string;
